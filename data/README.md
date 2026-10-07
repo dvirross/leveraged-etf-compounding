@@ -32,3 +32,18 @@ The notebook has an optional validation cell that, when Yahoo Finance is reachab
 ## Terms of use
 
 The values originate from Yahoo Finance; they are redistributed here only as a three-row snapshot for verification of the analysis. The repository's MIT license covers the code and notebook, not third-party market data.
+
+
+## Five-year IBKR daily history
+
+For the real-data revision of the article, the repository also contains five years of daily regular-session OHLCV bars retrieved through Interactive Brokers on 2026-10-07:
+
+- `ibkr-qqq-daily-5y.csv`
+- `ibkr-tqqq-daily-5y.csv`
+- `ibkr-sqqq-daily-5y.csv`
+
+Source: Interactive Brokers historical price history, daily bars, regular trading hours only (`outside_rth=false`), with corporate-action metadata requested during retrieval. The returned chart source was `Last`.
+
+These files are intended for empirical path/window searches and rolling historical analysis. They should be treated as **observed price-bar data**, not as a total-return series unless adjustment conventions are independently established. For this revision it is acceptable to search for new examples in raw price-return space rather than force the earlier dividend-adjusted June 2024 example into every analysis.
+
+The current QQQ file spans 2021-10-11 through 2026-10-07. TQQQ and SQQQ were retrieved using the same five-year request. Exact row counts and overlap should be checked by the analysis notebook before use.
