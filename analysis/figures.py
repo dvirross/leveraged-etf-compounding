@@ -57,10 +57,10 @@ def fig_round_trip(close: pd.DataFrame, row: pd.Series) -> go.Figure:
     fig.add_hline(y=100, line=dict(color=AXIS, width=1))
     lo, hi = float(min(norm.min().min(), ideal.min())), float(max(norm.max().max(), ideal.max()))
     pad = 0.12 * (hi - lo)
-    fig.update_layout(**BASE, height=440, margin=dict(l=64, r=24, t=24, b=56), hovermode="closest",
-                      legend=dict(orientation="h", x=0, y=1.14, xanchor="left"),
+    fig.update_layout(**BASE, height=440, margin=dict(l=64, r=24, t=24, b=150), hovermode="closest",
+                      legend=dict(orientation="h", x=0, y=-0.16, xanchor="left", yanchor="top", font=dict(size=12)),
                       xaxis=dict(type="category", showgrid=False, linecolor=AXIS),
-                      yaxis=dict(title=f"Value (close, {_d(c.index[0])} = 100)", range=[lo - pad, hi + pad], tickformat=".0f", gridcolor=GRID, zeroline=False))
+                      yaxis=dict(title=f"Value ({pd.Timestamp(c.index[0]):%b} {pd.Timestamp(c.index[0]).day} = 100)", range=[lo - pad, hi + pad], tickformat=".0f", gridcolor=GRID, zeroline=False))
     return fig
 
 
@@ -68,7 +68,7 @@ def fig_round_trip(close: pd.DataFrame, row: pd.Series) -> go.Figure:
 def fig_matched_windows(close: pd.Series, windows: pd.DataFrame, horizon: int) -> go.Figure:
     colors = [BLUE, ORANGE, TEAL]
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.09,
-                        subplot_titles=("QQQ price, base date = 100", "Idealized daily 3× product on the same days, base date = 100"))
+                        subplot_titles=("QQQ price (base = 100)", "Idealized daily 3× product (base = 100)"))
     naive = 100 * (1 + 3 * windows.bench_return.mean())
     for k, (_, w) in enumerate(windows.iterrows()):
         p = emp.window_path(close, w.base_date, w.end_date)
@@ -86,13 +86,13 @@ def fig_matched_windows(close: pd.Series, windows: pd.DataFrame, horizon: int) -
                                f"Window realized volatility: {100 * w.vol:.2f}%<extra></extra>")), row=r, col=1)
     fig.add_hline(y=naive, row=2, col=1, line=dict(color=MUTED, width=1.4, dash="dash"),
                   annotation_text=f"3 × the QQQ gain: about {naive:.0f}", annotation_position="top left", annotation_font=dict(size=12, color=MUTED))
-    fig.update_layout(**BASE, height=640, margin=dict(l=64, r=20, t=60, b=52), hovermode="closest",
-                      legend=dict(orientation="h", x=0, y=1.0, yanchor="bottom", xanchor="left", font=dict(size=12)))
+    fig.update_layout(**BASE, height=640, margin=dict(l=56, r=16, t=36, b=150), hovermode="closest",
+                      legend=dict(orientation="h", x=0, y=-0.17, yanchor="top", xanchor="left", font=dict(size=12)))
     for a in fig.layout.annotations:
         if a.text and not a.text.startswith("3 ×"):
             a.update(x=0, xanchor="left", font=dict(size=13, color=MUTED))
     fig.update_xaxes(showgrid=False, linecolor=AXIS, dtick=5, range=[-0.4, horizon + 0.4])
-    fig.update_xaxes(title_text=f"Trading days since the base date (all windows: {horizon} daily returns, 12 positive)", row=2, col=1)
+    fig.update_xaxes(title_text="Trading days since the base date", row=2, col=1)
     fig.update_yaxes(gridcolor=GRID, zeroline=False, tickformat=".0f")
     return fig
 
@@ -108,43 +108,43 @@ def fig_vol_drag(win: pd.DataFrame, horizon: int) -> go.Figure:
     lim = float(np.ceil(100 * win.bench_return.abs().max() / 10) * 10)
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=_pct(win.vol), y=_pct(win.drag), mode="markers", name="QQQ windows (idealized 3×)", customdata=cd, hovertemplate=ht,
+        x=_pct(win.vol), y=_pct(win.drag), mode="markers", name="Idealized 3× windows", customdata=cd, hovertemplate=ht,
         marker=dict(size=6, opacity=0.75, color=_pct(win.bench_return), cmin=-lim, cmax=lim, cmid=0, colorscale=[[0, "#b3312f"], [0.5, "#c4c9d4"], [1, "#2f5fc7"]],
-                    colorbar=dict(title=dict(text="QQQ return over the window (%)", side="bottom"), orientation="h", thickness=10, len=0.7, x=0.5, xanchor="center", y=-0.4, ticksuffix="%"))))
+                    colorbar=dict(title=dict(text="QQQ return over the window", side="bottom"), orientation="h", thickness=10, lenmode="fraction", len=0.8, x=0.5, xanchor="center", yref="container", y=0.0, yanchor="bottom", ticksuffix="%"))))
     if "actual_return" in win:
         act = (1 + win.actual_return) / (1 + win.bench_return) ** emp.LEVERAGE - 1
         cda = np.column_stack([cd[:, 0], cd[:, 1], _pct(win.bench_return), _pct(win.actual_return), cd[:, 4], _pct(win.actual_return - win.naive_return), cd[:, 6], cd[:, 7]])
         fig.add_trace(go.Scatter(
-            x=_pct(win.vol), y=_pct(act), mode="markers", name="TQQQ actual (fees, financing, tracking included)", visible="legendonly", customdata=cda,
+            x=_pct(win.vol), y=_pct(act), mode="markers", name="Actual TQQQ", visible="legendonly", customdata=cda,
             hovertemplate=ht.replace("Idealized 3× return", "TQQQ actual return"), marker=dict(size=6, symbol="circle-open", color=ORANGE, line=dict(width=1.2))))
     sig = np.linspace(win.vol.min() * 0.95, win.vol.max() * 1.03, 80)
     fig.add_trace(go.Scatter(x=np.round(100 * sig, 3), y=np.round(100 * (np.exp(-emp.LEVERAGE * (emp.LEVERAGE - 1) / 2 * sig**2 * T) - 1), 4),
-                             mode="lines", name="Second-order model: exp(−3σ²T) − 1", line=dict(color=INK, width=2, dash="dash"),
+                             mode="lines", name="Model curve", line=dict(color=INK, width=2, dash="dash"),
                              hovertemplate="Model at %{x:.2f}% volatility: %{y:.2f}%<extra></extra>"))
-    fig.update_layout(**BASE, height=520, margin=dict(l=64, r=20, t=24, b=130), hovermode="closest",
-                      legend=dict(orientation="h", x=0, y=1.12, xanchor="left", yanchor="bottom", font=dict(size=12)),
-                      xaxis=dict(title="Realized volatility of QQQ over the window (annualized)", ticksuffix="%", gridcolor=GRID, zeroline=False, linecolor=AXIS),
-                      yaxis=dict(title=f"Idealized 3× wealth relative to (1 + QQQ return)³", ticksuffix="%", gridcolor=GRID, zeroline=True, zerolinecolor=AXIS))
+    fig.update_layout(**BASE, height=520, margin=dict(l=56, r=16, t=16, b=140), hovermode="closest",
+                      legend=dict(orientation="v", x=0.99, y=0.99, xanchor="right", yanchor="top", font=dict(size=11), bgcolor="rgba(255,255,255,0.85)"),
+                      xaxis=dict(title="Realized volatility (annualized)", ticksuffix="%", gridcolor=GRID, zeroline=False, linecolor=AXIS),
+                      yaxis=dict(title="Shortfall vs smooth-path value", ticksuffix="%", gridcolor=GRID, zeroline=True, zerolinecolor=AXIS))
     return fig
 
 
 # --------------------------------------------------------------------------------------- Figure 5
 def fig_green_days(win: pd.DataFrame, horizon: int, edges=(0.0, 0.45, 0.50, 0.55, 0.60, 0.65, 1.0)) -> go.Figure:
-    labels = ["45% or fewer", "45–50%", "50–55%", "55–60%", "60–65%", "more than 65%"]
+    labels = ["≤45", "45–50", "50–55", "55–60", "60–65", ">65"]
     b = pd.cut(win.pos_share, list(edges), include_lowest=True, labels=labels)
     fig = go.Figure()
     for lab in labels:
         g = win[b == lab]
         cd = np.column_stack([[_d(d) for d in g.base_date], [_d(d) for d in g.end_date], _pct(g.bench_return), _pct(g.naive_return), _pct(g.vol), g.pos_days.values])
         fig.add_trace(go.Box(
-            y=_pct(g.lev_return), name=f"{lab}<br>(n = {len(g)})", boxpoints="all", jitter=0.55, pointpos=0, whiskerwidth=0.6, line=dict(color=BLUE, width=1.6),
+            y=_pct(g.lev_return), name=f"{lab}<br>n={len(g)}", boxpoints="all", jitter=0.55, pointpos=0, whiskerwidth=0.6, line=dict(color=BLUE, width=1.6),
             fillcolor="rgba(55,88,215,0.12)", marker=dict(size=3.5, opacity=0.45, color=BLUE), boxmean=False, customdata=cd, showlegend=False,
             hovertemplate=("<b>%{customdata[0]} to %{customdata[1]}</b><br>Idealized 3× return: %{y:+.2f}%<br>QQQ return: %{customdata[2]:+.2f}%<br>"
                            "3 × QQQ return: %{customdata[3]:+.2f}%<br>Realized volatility: %{customdata[4]:.2f}%<br>Positive days: %{customdata[5]} of " + str(horizon) + "<extra></extra>")))
     fig.add_hline(y=0, line=dict(color=MUTED, width=1.2, dash="dash"))
-    fig.update_layout(**BASE, height=480, margin=dict(l=64, r=20, t=24, b=88), hovermode="closest",
-                      xaxis=dict(title=f"Share of positive-return days in the {horizon}-day window", linecolor=AXIS),
-                      yaxis=dict(title="Idealized 3× return over the window", ticksuffix="%", gridcolor=GRID, zeroline=False))
+    fig.update_layout(**BASE, height=480, margin=dict(l=64, r=16, t=24, b=88), hovermode="closest",
+                      xaxis=dict(title="Positive days (% of the window)", linecolor=AXIS, tickangle=0, tickfont=dict(size=11)),
+                      yaxis=dict(title="Idealized 3× return", ticksuffix="%", gridcolor=GRID, zeroline=False))
     return fig
 
 
