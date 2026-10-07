@@ -1,0 +1,10 @@
+# Minimal environment for notebooks/leveraged-etf-volatility-drag.ipynb
+# Developed and run with numpy 2.5, pandas 3.0, matplotlib 3.11 (lower bounds below are conservative).
+numpy>=1.26
+pandas>=2.1
+matplotlib>=3.8
+jinja2>=3.1          # required by pandas' DataFrame.style (formatted tables in the notebook)
+jupyterlab>=4.0      # to open and run the notebook (provides nbconvert for command-line runs)
+
+# Optional: only for the live validation cell in Section 7. The notebook runs without it.
+# yfinance>=0.2.40
