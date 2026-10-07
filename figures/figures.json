@@ -29,10 +29,11 @@
     "caption": "Five-year terminal wealth in a simulation with 8 % arithmetic drift and 20 % volatility: the 1× and 3× medians are close, but the 3× distribution is far wider, and the chance of trailing the index rises steeply with volatility.",
     "assumptions": "100,000 paths (panel a) and 20,000 paths per volatility level (panel b), i.i.d. Normal daily simple returns, arithmetic mean 8 % a year, 252 days, idealized daily reset, no fees or financing, fixed seeds."
   },
-  "05-qqq-tqqq-sqqq-roundtrip.png": {
-    "file": "figures/05-qqq-tqqq-sqqq-roundtrip.png",
-    "alt": "Two charts for 21, 24 and 25 June 2024. Left: QQQ, TQQQ and SQQQ closes normalized to 100 on 21 June; QQQ dips to 98.9 and returns to 99.99, TQQQ dips to 96.6 and ends at 99.84, and SQQQ rises to 103.5 and ends at 99.88. Right: cumulative returns over the two sessions, QQQ minus 0.008 percent, TQQQ minus 0.161 percent and SQQQ minus 0.119 percent, all slightly below zero.",
+  "05-qqq-tqqq-sqqq-roundtrip": {
+    "spec": "figures/05-qqq-tqqq-sqqq-roundtrip.json",
+    "static": "figures/05-qqq-tqqq-sqqq-roundtrip.png",
+    "alt": "Line chart of QQQ, TQQQ and SQQQ adjusted closes normalized to 100 on 21 June 2024, for 21, 24 and 25 June. QQQ dips to 98.86 and returns to 99.99, TQQQ dips to 96.61 and ends at 99.84, and SQQQ rises to 103.45 and ends at 99.88. Hovering a point shows the exact date, adjusted close and return since 21 June.",
     "caption": "A real two-session illustration. On a dividend-adjusted basis, QQQ finished almost exactly at its 21 June level by 25 June, while both the daily +3× product TQQQ and the daily −3× product SQQQ finished slightly below their starting values.",
-    "assumptions": "Historical observed data, not a simulation. Three trading dates (21, 24, 25 June 2024); yfinance Close as auto-adjusted, recovered from the original Colab notebook output; retrieval date not recorded. QQQ went ex-dividend during the interval, so its near-flat result is specifically a dividend-adjusted return statement, not an unadjusted price round trip. Snapshot: data/qqq-tqqq-sqqq-2024-06-21-25.csv. QQQ is a tradable proxy for the Nasdaq-100, which TQQQ and SQQQ target daily; one selected illustration, not statistical evidence."
+    "assumptions": "Historical observed data, not a simulation. Three trading dates (21, 24, 25 June 2024); yfinance Close as auto-adjusted, recovered from the original Colab notebook output; retrieval date not recorded. QQQ went ex-dividend during the interval, so its near-flat result is specifically a dividend-adjusted return statement, not an unadjusted price round trip. Snapshot: data/qqq-tqqq-sqqq-2024-06-21-25.csv. QQQ is a tradable proxy for the Nasdaq-100, which TQQQ and SQQQ target daily; one selected illustration, not statistical evidence. Displayed prices and percentages are rounded to two decimals; hover shows the return to four."
   }
 }

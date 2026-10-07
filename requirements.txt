@@ -3,8 +3,12 @@
 numpy>=1.26
 pandas>=2.1
 matplotlib>=3.8
+plotly>=6.0         # interactive Figure 2 (Plotly JSON spec for the website)
 jinja2>=3.1          # required by pandas' DataFrame.style (formatted tables in the notebook)
 jupyterlab>=4.0      # to open and run the notebook (provides nbconvert for command-line runs)
 
 # Optional: only for the live validation cell in Section 7. The notebook runs without it.
 # yfinance>=0.2.40
+
+# Optional: only to re-export the static PNG fallback of Plotly figures (also needs a local Chrome/Chromium).
+# kaleido>=1.0
