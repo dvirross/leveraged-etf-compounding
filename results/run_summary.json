@@ -1,0 +1,15 @@
+{
+  "data_first": "2021-10-11",
+  "data_last": "2026-10-07",
+  "rows": 1253,
+  "match": {
+    "horizon": 20,
+    "tolerance": 0.005,
+    "min_return": 0.05,
+    "candidate_sets": 1654
+  },
+  "rolling": {
+    "horizon": 63,
+    "windows": 1190
+  }
+}

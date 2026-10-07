@@ -1,39 +1,30 @@
 {
-  "01-two-day-example.png": {
-    "file": "figures/01-two-day-example.png",
-    "alt": "Two charts. Left: an index falls from 100 to 90 and returns to 100 while a daily 3× product falls from 100 to 70 and recovers only to 93.3. Right: the loss of the 2× and 3× products after the index recovers to its start grows quickly as the first-day fall gets larger.",
-    "caption": "Two-day example: after a 10 % fall and the exact 11.1 % rebound, the index is flat but a daily 3× product is down 6.7 %; the shortfall grows with the square of the fall.",
-    "assumptions": "Idealized daily-reset leverage, no fees or financing; arithmetic only, no simulation."
+  "02-real-two-day-roundtrip": {
+    "spec": "figures/02-real-two-day-roundtrip.json",
+    "static": "figures/02-real-two-day-roundtrip.png",
+    "alt": "Line chart of QQQ, TQQQ, SQQQ and an idealized +3× series normalized to 100 on 17 April 2025, for 17, 21 and 22 April. QQQ dips to 97.52 and finishes at 100.09; TQQQ falls to 92.69 and finishes at 99.78; SQQQ rises to 107.38 and finishes at 99.07.",
+    "caption": "A real two-session fall and recovery. QQQ fell and then rose back to just above its starting close, yet both the daily +3× product TQQQ and the daily −3× product SQQQ finished below their starting values.",
+    "assumptions": "Observed IBKR daily closes (regular trading hours), not total-return adjusted. QQQ is a proxy for the Nasdaq-100. Selected by the documented rule in this notebook; one illustration, not evidence about frequency. Actual fund returns include fees, financing and tracking effects that three closes cannot separate."
   },
-  "02-same-index-different-paths.png": {
-    "file": "figures/02-same-index-different-paths.png",
-    "alt": "Two charts over 20 trading days. Left: three index paths, a steady climb, a choppy path and a slide followed by a rebound, all ending at 1.10. Right: the daily 3× product on the same paths ends at different values, about 1.33 for the steady climb, 1.24 for the slide and rebound and 1.19 for the choppy path, against a dashed line at 1.30 for three times the index's 10 percent gain.",
-    "caption": "Three index paths with the same +10 % return: a daily 3× product ends at different values depending on the path, and none of them equals 3 × 10 % = 30 %.",
-    "assumptions": "Synthetic 20-day return sequences constructed to end at exactly +10 % for the index; idealized daily 3× leverage, no fees."
+  "03-matched-windows": {
+    "spec": "figures/03-matched-windows.json",
+    "static": "figures/03-matched-windows.png",
+    "alt": "Two stacked charts over 20 trading days for three real QQQ windows that each rose about 8.5 to 9 percent with 12 positive days. Top: QQQ paths, one calm, one moderate and one very volatile with a drop of about 8 percent early on. Bottom: the idealized daily 3× product on the same days ends at about 126 for the window starting June 2022, about 128 for May 2023 and about 119 for April 2025, against a dashed line at about 126 for three times the QQQ gain.",
+    "caption": "Three real 20-day QQQ windows with almost the same cumulative return (about +8.5% to +9%) and the same number of positive days (12 of 20). The idealized daily 3× product ends between about +19% and +28%, because the day-to-day path differs.",
+    "assumptions": "Observed IBKR daily closes, not total-return adjusted. Windows found by the systematic rule in this notebook (largest 3× spread among non-overlapping windows with equal positive-day count and QQQ returns within 0.5 percentage points); selected to illustrate a mechanism, not randomly sampled. The 3× series is an idealized model of QQQ's own daily returns without fees, financing or tracking error."
   },
-  "03-volatility-comparison.png": {
-    "file": "figures/03-volatility-comparison.png",
-    "alt": "Four panels for annual volatility of 10, 20, 40 and 60 percent over five years, each showing wealth multiples on a log scale for the index and an idealized daily 3× product, with dotted median curves. At 10 percent volatility the 3× path ends far above the index; at 20 percent the medians are about equal; at 40 and 60 percent the 3× path collapses toward zero while the index stays comparatively close to its start.",
-    "caption": "With the same 8 % arithmetic drift, the idealized daily 3× product pulls well ahead of the index at 10 % volatility, roughly matches its median at 20 %, and falls far behind at 40 % and 60 %. Solid lines: one seeded path; dotted: median of 5,000 paths.",
-    "assumptions": "i.i.d. Normal daily simple returns, arithmetic mean 8 % a year, volatility 10/20/40/60 % a year, 252 trading days, 5 years, idealized daily reset with no costs; common random numbers across panels."
+  "04-volatility-drag-rolling": {
+    "spec": "figures/04-volatility-drag-rolling.json",
+    "static": "figures/04-volatility-drag-rolling.png",
+    "alt": "Scatter chart of 1,190 overlapping 63-day QQQ windows. Horizontal axis: realized volatility from about 11 to 39 percent. Vertical axis: the idealized 3× wealth relative to the cube of QQQ's growth, falling from about −1 percent at low volatility to about −10 percent at the highest volatility, closely following a dashed second-order model curve. Points are colored by QQQ's return over the window. A legend toggle shows the actual TQQQ results.",
+    "caption": "Across 1,190 overlapping 63-day QQQ windows, the idealized daily 3× product falls further below the smooth-path value as realized volatility rises, closely following the second-order approximation. Hover a point for its dates and returns; use the legend to add actual TQQQ.",
+    "assumptions": "Observed IBKR daily closes (QQQ, TQQQ), 2021-10-11 to 2026-10-07, not total-return adjusted. Overlapping windows are not independent (about 19 non-overlapping quarters). Shortfall = (1 + idealized 3× return) / (1 + QQQ return)³ − 1. The dashed curve is exp(−3σ²T) − 1 with T = 63/252. Actual TQQQ includes fees, financing and tracking effects."
   },
-  "06-growth-rate-vs-leverage.png": {
-    "file": "figures/06-growth-rate-vs-leverage.png",
-    "alt": "Line chart of approximate long-run annual growth rate against the daily leverage factor from 0 to 5 times, for annual volatilities of 10, 20 and 40 percent with an 8 percent arithmetic drift. Each curve is a downward parabola; the peak moves left and lower as volatility rises, and at 3 times leverage growth is clearly positive at 10 percent volatility, about 6 percent at 20 percent, and strongly negative at 40 percent.",
-    "caption": "Approximate long-run growth rate versus leverage for a fixed 8 % arithmetic drift: more leverage first helps and then hurts, and the turning point depends on volatility. Dots mark the growth-maximizing leverage μ/σ² where it is within 5×.",
-    "assumptions": "Second-order approximation g(L) = Lμ − ½L²σ² with μ = 8 %, i.i.d. returns, no costs. Optional figure."
-  },
-  "04-monte-carlo-terminal-distribution.png": {
-    "file": "figures/04-monte-carlo-terminal-distribution.png",
-    "alt": "Two charts. Left: overlapping histograms on a log scale of five-year terminal wealth for 1× and idealized daily 3× exposure at 20 percent volatility; the medians are nearly the same, but the 3× distribution is much wider, with a long right tail and many outcomes far below the start. Right: lines showing that the probability of the 3× product ending below the index, and below its starting value, rises with annual volatility from 5 to 60 percent.",
-    "caption": "Five-year terminal wealth in a simulation with 8 % arithmetic drift and 20 % volatility: the 1× and 3× medians are close, but the 3× distribution is far wider, and the chance of trailing the index rises steeply with volatility.",
-    "assumptions": "100,000 paths (panel a) and 20,000 paths per volatility level (panel b), i.i.d. Normal daily simple returns, arithmetic mean 8 % a year, 252 days, idealized daily reset, no fees or financing, fixed seeds."
-  },
-  "05-qqq-tqqq-sqqq-roundtrip": {
-    "spec": "figures/05-qqq-tqqq-sqqq-roundtrip.json",
-    "static": "figures/05-qqq-tqqq-sqqq-roundtrip.png",
-    "alt": "Line chart of QQQ, TQQQ and SQQQ adjusted closes normalized to 100 on 21 June 2024, for 21, 24 and 25 June. QQQ dips to 98.86 and returns to 99.99, TQQQ dips to 96.61 and ends at 99.84, and SQQQ rises to 103.45 and ends at 99.88. Hovering a point shows the exact date, adjusted close and return since 21 June.",
-    "caption": "A real two-session illustration. On a dividend-adjusted basis, QQQ finished almost exactly at its 21 June level by 25 June, while both the daily +3× product TQQQ and the daily −3× product SQQQ finished slightly below their starting values.",
-    "assumptions": "Historical observed data, not a simulation. Three trading dates (21, 24, 25 June 2024); yfinance Close as auto-adjusted, recovered from the original Colab notebook output; retrieval date not recorded. QQQ went ex-dividend during the interval, so its near-flat result is specifically a dividend-adjusted return statement, not an unadjusted price round trip. Snapshot: data/qqq-tqqq-sqqq-2024-06-21-25.csv. QQQ is a tradable proxy for the Nasdaq-100, which TQQQ and SQQQ target daily; one selected illustration, not statistical evidence. Displayed prices and percentages are rounded to two decimals; hover shows the return to four."
+  "05-positive-days-rolling": {
+    "spec": "figures/05-positive-days-rolling.json",
+    "static": "figures/05-positive-days-rolling.png",
+    "alt": "Box plots with every point shown, for 1,190 overlapping 63-day QQQ windows grouped by share of positive days, from 45 percent or fewer to more than 65 percent. The median idealized 3× return rises from about −33 percent to about +53 percent, but each group spans a wide range, for example from about −13 percent to +86 percent in the 55 to 60 percent group.",
+    "caption": "More positive days push the idealized 3× outcome up, but the share of green days alone does not determine it: windows with similar positive-day shares end anywhere from a loss to a large gain, depending on the size of the daily moves.",
+    "assumptions": "Observed IBKR daily closes of QQQ, 2021-10-11 to 2026-10-07, not total-return adjusted; 63-day overlapping windows (about 19 independent quarters). The 3× series is an idealized model without fees, financing or tracking error."
   }
 }

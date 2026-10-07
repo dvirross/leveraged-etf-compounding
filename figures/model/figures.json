@@ -1,0 +1,32 @@
+{
+  "01-two-day-example.png": {
+    "file": "figures/model/01-two-day-example.png",
+    "alt": "Two charts. Left: an index falls from 100 to 90 and returns to 100 while a daily 3× product falls from 100 to 70 and recovers only to 93.3. Right: the loss of the 2× and 3× products after the index recovers to its start grows quickly as the first-day fall gets larger.",
+    "caption": "Two-day example: after a 10 % fall and the exact 11.1 % rebound, the index is flat but a daily 3× product is down 6.7 %; the shortfall grows with the square of the fall.",
+    "assumptions": "Idealized daily-reset leverage, no fees or financing; arithmetic only, no simulation."
+  },
+  "02-same-index-different-paths.png": {
+    "file": "figures/model/02-same-index-different-paths.png",
+    "alt": "Two charts over 20 trading days. Left: three index paths, a steady climb, a choppy path and a slide followed by a rebound, all ending at 1.10. Right: the daily 3× product on the same paths ends at different values, about 1.33 for the steady climb, 1.24 for the slide and rebound and 1.19 for the choppy path, against a dashed line at 1.30 for three times the index's 10 percent gain.",
+    "caption": "Three index paths with the same +10 % return: a daily 3× product ends at different values depending on the path, and none of them equals 3 × 10 % = 30 %.",
+    "assumptions": "Synthetic 20-day return sequences constructed to end at exactly +10 % for the index; idealized daily 3× leverage, no fees."
+  },
+  "03-volatility-comparison.png": {
+    "file": "figures/model/03-volatility-comparison.png",
+    "alt": "Four panels for annual volatility of 10, 20, 40 and 60 percent over five years, each showing wealth multiples on a log scale for the index and an idealized daily 3× product, with dotted median curves. At 10 percent volatility the 3× path ends far above the index; at 20 percent the medians are about equal; at 40 and 60 percent the 3× path collapses toward zero while the index stays comparatively close to its start.",
+    "caption": "With the same 8 % arithmetic drift, the idealized daily 3× product pulls well ahead of the index at 10 % volatility, roughly matches its median at 20 %, and falls far behind at 40 % and 60 %. Solid lines: one seeded path; dotted: median of 5,000 paths.",
+    "assumptions": "i.i.d. Normal daily simple returns, arithmetic mean 8 % a year, volatility 10/20/40/60 % a year, 252 trading days, 5 years, idealized daily reset with no costs; common random numbers across panels."
+  },
+  "06-growth-rate-vs-leverage.png": {
+    "file": "figures/model/06-growth-rate-vs-leverage.png",
+    "alt": "Line chart of approximate long-run annual growth rate against the daily leverage factor from 0 to 5 times, for annual volatilities of 10, 20 and 40 percent with an 8 percent arithmetic drift. Each curve is a downward parabola; the peak moves left and lower as volatility rises, and at 3 times leverage growth is clearly positive at 10 percent volatility, about 6 percent at 20 percent, and strongly negative at 40 percent.",
+    "caption": "Approximate long-run growth rate versus leverage for a fixed 8 % arithmetic drift: more leverage first helps and then hurts, and the turning point depends on volatility. Dots mark the growth-maximizing leverage μ/σ² where it is within 5×.",
+    "assumptions": "Second-order approximation g(L) = Lμ − ½L²σ² with μ = 8 %, i.i.d. returns, no costs. Optional figure."
+  },
+  "04-monte-carlo-terminal-distribution.png": {
+    "file": "figures/model/04-monte-carlo-terminal-distribution.png",
+    "alt": "Two charts. Left: overlapping histograms on a log scale of five-year terminal wealth for 1× and idealized daily 3× exposure at 20 percent volatility; the medians are nearly the same, but the 3× distribution is much wider, with a long right tail and many outcomes far below the start. Right: lines showing that the probability of the 3× product ending below the index, and below its starting value, rises with annual volatility from 5 to 60 percent.",
+    "caption": "Five-year terminal wealth in a simulation with 8 % arithmetic drift and 20 % volatility: the 1× and 3× medians are close, but the 3× distribution is far wider, and the chance of trailing the index rises steeply with volatility.",
+    "assumptions": "100,000 paths (panel a) and 20,000 paths per volatility level (panel b), i.i.d. Normal daily simple returns, arithmetic mean 8 % a year, 252 days, idealized daily reset, no fees or financing, fixed seeds."
+  }
+}

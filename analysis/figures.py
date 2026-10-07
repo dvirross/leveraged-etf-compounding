@@ -1,0 +1,162 @@
+"""Plotly figure builders for the article's real-data figures (article Figures 2 to 5).
+
+Each builder takes the DataFrames produced by ``analysis.empirical`` and returns a ``plotly.graph_objects.Figure``.
+``export`` writes the JSON spec that the website renders with plotly.js plus a static PNG fallback (PNG needs kaleido
+and a local Chrome/Chromium; the JSON is the primary artifact). Percentages are displayed with two decimals; the CSV
+files in ``results/`` keep full precision.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.io as pio
+from plotly.subplots import make_subplots
+
+from . import empirical as emp
+
+BLUE, ORANGE, VIOLET, TEAL = "#3758d7", "#c96f33", "#7a4fb3", "#1f8a8a"
+INK, MUTED, GRID, AXIS = "#142033", "#5d6678", "#e3e6ee", "#b9bfcc"
+FONT = dict(family="Inter, system-ui, -apple-system, 'Segoe UI', sans-serif", size=13, color=INK)
+BASE = dict(template="none", paper_bgcolor="white", plot_bgcolor="white", font=FONT)
+
+
+def _d(ts) -> str:
+    ts = pd.Timestamp(ts)
+    return f"{ts:%b} {ts.day}, {ts.year}"
+
+
+def _pct(x, nd=2) -> np.ndarray:
+    return np.round(100 * np.asarray(x, dtype=float), nd)
+
+
+# --------------------------------------------------------------------------------------- Figure 2
+def fig_round_trip(close: pd.DataFrame, row: pd.Series) -> go.Figure:
+    c = close.loc[row.base_date:row.end_date]
+    norm = 100 * c / c.iloc[0]
+    q = c["QQQ"].pct_change().fillna(0.0)
+    ideal = 100 * (1 + 3 * q).cumprod()
+    labels = [_d(d) for d in c.index]
+    ret = 100 * (c / c.iloc[0] - 1)
+    spec = [("QQQ", "QQQ (index proxy)", BLUE, "solid", norm["QQQ"], c["QQQ"]),
+            ("TQQQ", "TQQQ actual (daily +3×)", ORANGE, "solid", norm["TQQQ"], c["TQQQ"]),
+            ("SQQQ", "SQQQ actual (daily −3×)", VIOLET, "solid", norm["SQQQ"], c["SQQQ"])]
+    fig = go.Figure()
+    for key, name, col, dash, y, raw in spec:
+        fig.add_trace(go.Scatter(
+            x=labels, y=np.round(y.values, 6), mode="lines+markers", name=name, line=dict(color=col, width=3, dash=dash), marker=dict(size=9),
+            customdata=np.column_stack([np.round(raw.values, 2), np.round(ret[key].values, 4)]),
+            hovertemplate="<b>%{fullData.name}</b><br>%{x}<br>Close: %{customdata[0]:.2f}<br>Value: %{y:.2f}<br>Return since " + _d(c.index[0]) + ": %{customdata[1]:+.2f}%<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=labels, y=np.round(ideal.values, 6), mode="lines+markers", name="Idealized +3× applied to QQQ", line=dict(color=ORANGE, width=2, dash="dot"),
+        marker=dict(size=7, symbol="diamond-open"),
+        hovertemplate="<b>Idealized +3× (model)</b><br>%{x}<br>Value: %{y:.2f}<extra></extra>"))
+    fig.add_hline(y=100, line=dict(color=AXIS, width=1))
+    lo, hi = float(min(norm.min().min(), ideal.min())), float(max(norm.max().max(), ideal.max()))
+    pad = 0.12 * (hi - lo)
+    fig.update_layout(**BASE, height=440, margin=dict(l=64, r=24, t=24, b=56), hovermode="closest",
+                      legend=dict(orientation="h", x=0, y=1.14, xanchor="left"),
+                      xaxis=dict(type="category", showgrid=False, linecolor=AXIS),
+                      yaxis=dict(title=f"Value (close, {_d(c.index[0])} = 100)", range=[lo - pad, hi + pad], tickformat=".0f", gridcolor=GRID, zeroline=False))
+    return fig
+
+
+# --------------------------------------------------------------------------------------- Figure 3
+def fig_matched_windows(close: pd.Series, windows: pd.DataFrame, horizon: int) -> go.Figure:
+    colors = [BLUE, ORANGE, TEAL]
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.09,
+                        subplot_titles=("QQQ price, base date = 100", "Idealized daily 3× product on the same days, base date = 100"))
+    naive = 100 * (1 + 3 * windows.bench_return.mean())
+    for k, (_, w) in enumerate(windows.iterrows()):
+        p = emp.window_path(close, w.base_date, w.end_date)
+        name = f"{_d(w.base_date)} to {_d(w.end_date)}"
+        dates = [_d(d) for d in p.date]
+        for r, col in ((1, "bench"), (2, "lev")):
+            ret = 100 * (p[col] / 100 - 1)
+            fig.add_trace(go.Scatter(
+                x=p.day, y=np.round(p[col].values, 4), mode="lines+markers", name=name, legendgroup=name, showlegend=(r == 1),
+                line=dict(color=colors[k], width=2.6), marker=dict(size=5),
+                customdata=np.column_stack([dates, np.round(ret.values, 4), np.round(100 * p.daily_return.values, 4)]),
+                hovertemplate=("<b>" + name + "</b><br>Day %{x}: %{customdata[0]}<br>"
+                               + ("QQQ value: " if r == 1 else "Idealized 3× value: ") + "%{y:.2f}<br>Return since base: %{customdata[1]:+.2f}%<br>"
+                               "Day's QQQ return: %{customdata[2]:+.2f}%<br>"
+                               f"Window realized volatility: {100 * w.vol:.2f}%<extra></extra>")), row=r, col=1)
+    fig.add_hline(y=naive, row=2, col=1, line=dict(color=MUTED, width=1.4, dash="dash"),
+                  annotation_text=f"3 × the QQQ gain: about {naive:.0f}", annotation_position="top left", annotation_font=dict(size=12, color=MUTED))
+    fig.update_layout(**BASE, height=640, margin=dict(l=64, r=20, t=60, b=52), hovermode="closest",
+                      legend=dict(orientation="h", x=0, y=1.0, yanchor="bottom", xanchor="left", font=dict(size=12)))
+    for a in fig.layout.annotations:
+        if a.text and not a.text.startswith("3 ×"):
+            a.update(x=0, xanchor="left", font=dict(size=13, color=MUTED))
+    fig.update_xaxes(showgrid=False, linecolor=AXIS, dtick=5, range=[-0.4, horizon + 0.4])
+    fig.update_xaxes(title_text=f"Trading days since the base date (all windows: {horizon} daily returns, 12 positive)", row=2, col=1)
+    fig.update_yaxes(gridcolor=GRID, zeroline=False, tickformat=".0f")
+    return fig
+
+
+# --------------------------------------------------------------------------------------- Figure 4
+def fig_vol_drag(win: pd.DataFrame, horizon: int) -> go.Figure:
+    T = horizon / emp.TRADING_DAYS
+    cd = np.column_stack([[_d(d) for d in win.base_date], [_d(d) for d in win.end_date], _pct(win.bench_return), _pct(win.lev_return),
+                          _pct(win.naive_return), _pct(win.deviation), _pct(win.pos_share, 1), _pct(win.vol)])
+    ht = ("<b>%{customdata[0]} to %{customdata[1]}</b><br>QQQ return: %{customdata[2]:+.2f}%<br>Idealized 3× return: %{customdata[3]:+.2f}%<br>"
+          "3 × QQQ return: %{customdata[4]:+.2f}%<br>Realized volatility: %{customdata[7]:.2f}%<br>Positive days: %{customdata[6]:.1f}%<br>"
+          "Shortfall vs smooth-path value: %{y:.2f}%<extra></extra>")
+    lim = float(np.ceil(100 * win.bench_return.abs().max() / 10) * 10)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=_pct(win.vol), y=_pct(win.drag), mode="markers", name="QQQ windows (idealized 3×)", customdata=cd, hovertemplate=ht,
+        marker=dict(size=6, opacity=0.75, color=_pct(win.bench_return), cmin=-lim, cmax=lim, cmid=0, colorscale=[[0, "#b3312f"], [0.5, "#c4c9d4"], [1, "#2f5fc7"]],
+                    colorbar=dict(title=dict(text="QQQ return over the window (%)", side="bottom"), orientation="h", thickness=10, len=0.7, x=0.5, xanchor="center", y=-0.4, ticksuffix="%"))))
+    if "actual_return" in win:
+        act = (1 + win.actual_return) / (1 + win.bench_return) ** emp.LEVERAGE - 1
+        cda = np.column_stack([cd[:, 0], cd[:, 1], _pct(win.bench_return), _pct(win.actual_return), cd[:, 4], _pct(win.actual_return - win.naive_return), cd[:, 6], cd[:, 7]])
+        fig.add_trace(go.Scatter(
+            x=_pct(win.vol), y=_pct(act), mode="markers", name="TQQQ actual (fees, financing, tracking included)", visible="legendonly", customdata=cda,
+            hovertemplate=ht.replace("Idealized 3× return", "TQQQ actual return"), marker=dict(size=6, symbol="circle-open", color=ORANGE, line=dict(width=1.2))))
+    sig = np.linspace(win.vol.min() * 0.95, win.vol.max() * 1.03, 80)
+    fig.add_trace(go.Scatter(x=np.round(100 * sig, 3), y=np.round(100 * (np.exp(-emp.LEVERAGE * (emp.LEVERAGE - 1) / 2 * sig**2 * T) - 1), 4),
+                             mode="lines", name="Second-order model: exp(−3σ²T) − 1", line=dict(color=INK, width=2, dash="dash"),
+                             hovertemplate="Model at %{x:.2f}% volatility: %{y:.2f}%<extra></extra>"))
+    fig.update_layout(**BASE, height=520, margin=dict(l=64, r=20, t=24, b=130), hovermode="closest",
+                      legend=dict(orientation="h", x=0, y=1.12, xanchor="left", yanchor="bottom", font=dict(size=12)),
+                      xaxis=dict(title="Realized volatility of QQQ over the window (annualized)", ticksuffix="%", gridcolor=GRID, zeroline=False, linecolor=AXIS),
+                      yaxis=dict(title=f"Idealized 3× wealth relative to (1 + QQQ return)³", ticksuffix="%", gridcolor=GRID, zeroline=True, zerolinecolor=AXIS))
+    return fig
+
+
+# --------------------------------------------------------------------------------------- Figure 5
+def fig_green_days(win: pd.DataFrame, horizon: int, edges=(0.0, 0.45, 0.50, 0.55, 0.60, 0.65, 1.0)) -> go.Figure:
+    labels = ["45% or fewer", "45–50%", "50–55%", "55–60%", "60–65%", "more than 65%"]
+    b = pd.cut(win.pos_share, list(edges), include_lowest=True, labels=labels)
+    fig = go.Figure()
+    for lab in labels:
+        g = win[b == lab]
+        cd = np.column_stack([[_d(d) for d in g.base_date], [_d(d) for d in g.end_date], _pct(g.bench_return), _pct(g.naive_return), _pct(g.vol), g.pos_days.values])
+        fig.add_trace(go.Box(
+            y=_pct(g.lev_return), name=f"{lab}<br>(n = {len(g)})", boxpoints="all", jitter=0.55, pointpos=0, whiskerwidth=0.6, line=dict(color=BLUE, width=1.6),
+            fillcolor="rgba(55,88,215,0.12)", marker=dict(size=3.5, opacity=0.45, color=BLUE), boxmean=False, customdata=cd, showlegend=False,
+            hovertemplate=("<b>%{customdata[0]} to %{customdata[1]}</b><br>Idealized 3× return: %{y:+.2f}%<br>QQQ return: %{customdata[2]:+.2f}%<br>"
+                           "3 × QQQ return: %{customdata[3]:+.2f}%<br>Realized volatility: %{customdata[4]:.2f}%<br>Positive days: %{customdata[5]} of " + str(horizon) + "<extra></extra>")))
+    fig.add_hline(y=0, line=dict(color=MUTED, width=1.2, dash="dash"))
+    fig.update_layout(**BASE, height=480, margin=dict(l=64, r=20, t=24, b=88), hovermode="closest",
+                      xaxis=dict(title=f"Share of positive-return days in the {horizon}-day window", linecolor=AXIS),
+                      yaxis=dict(title="Idealized 3× return over the window", ticksuffix="%", gridcolor=GRID, zeroline=False))
+    return fig
+
+
+# --------------------------------------------------------------------------------------- export
+def export(fig: go.Figure, out_dir: Path, name: str, size=(1100, 520), png: bool = True) -> None:
+    """Write ``<name>.json`` (Plotly spec, no template) and, if kaleido and Chrome are available, ``<name>.png``."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    spec = json.loads(pio.to_json(fig))
+    spec.get("layout", {}).pop("template", None)
+    (out_dir / f"{name}.json").write_text(json.dumps(spec, separators=(",", ":"), ensure_ascii=False) + "\n", encoding="utf-8")
+    if png:
+        try:
+            pio.write_image(fig, str(out_dir / f"{name}.png"), width=size[0], height=size[1], scale=2)
+        except Exception as exc:  # pragma: no cover - environment dependent
+            print(f"Static PNG not written for {name} ({type(exc).__name__}); the JSON spec was exported.")

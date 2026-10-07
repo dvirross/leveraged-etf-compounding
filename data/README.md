@@ -1,8 +1,12 @@
-# QQQ / TQQQ / SQQQ, 21–25 June 2024 (data snapshot)
+# Data notes
+
+> **Superseded for the article.** The article's figures now use the five-year IBKR files described in the last section. The three-date June 2024 snapshot below is kept only for provenance; no notebook reads it any more.
+
+## QQQ / TQQQ / SQQQ, 21–25 June 2024 (older data snapshot)
 
 File: `qqq-tqqq-sqqq-2024-06-21-25.csv`: three trading dates, one column per fund.
 
-Used by `notebooks/leveraged-etf-volatility-drag.ipynb` (Section 7) to produce `figures/05-qqq-tqqq-sqqq-roundtrip.png`. The notebook reads this file and needs no internet access.
+Formerly used by the first version of the article's Figure 2. It is no longer read by any notebook.
 
 ## What the numbers are
 
@@ -27,14 +31,14 @@ The sequence was originally found by an exploratory search of QQQ history for a 
 
 ## Re-validating
 
-The notebook has an optional validation cell that, when Yahoo Finance is reachable, fetches the same dates and compares **returns** (not price levels) with this snapshot. It prints the differences and never fails the run.
+The earlier notebook had an optional validation cell for this snapshot; it was removed together with the notebook section that used it.
 
 ## Terms of use
 
 The values originate from Yahoo Finance; they are redistributed here only as a three-row snapshot for verification of the analysis. The repository's MIT license covers the code and notebook, not third-party market data.
 
 
-## Five-year IBKR daily history
+## Five-year IBKR daily history (used by the article)
 
 For the real-data revision of the article, the repository also contains five years of daily regular-session OHLCV bars retrieved through Interactive Brokers on 2026-10-07:
 

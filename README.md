@@ -1,45 +1,33 @@
 # Why a daily 3× leveraged product is not 3× the long-term return
 
-Reproducible analysis behind the article **[Why 3× Daily Leverage Is Not 3× Long-Term Return](https://dvirross.com/quant-research/notes/why-3x-daily-leverage-is-not-3x-long-term-return)** on dvirross.com. The article explains the ideas for a general reader; this repository holds the code, the data snapshot and the figures so that every number can be checked.
+Reproducible analysis behind the article **[Why 3× Daily Leverage Is Not 3× Long-Term Return](https://dvirross.com/quant-research/notes/why-3x-daily-leverage-is-not-3x-long-term-return)** on dvirross.com. The article explains the ideas for a general reader; this repository holds the data, code, results and figures so that every number can be checked.
 
 ## The question
 
-A daily 3× leveraged ETF targets three times the index's return **each day**. Compounded over many days, the result is not three times the index's cumulative return. How large is the gap, what drives it, and where does the simple model stop matching real funds?
+A daily 3× leveraged ETF targets three times the index's return **each day**. Compounded over many days, the result is not three times the index's cumulative return. How large is the gap, what drives it, and how does it look in real market history?
 
-## The mechanism in one example
+## What is here
 
-An index falls 10% and then rises by exactly the 11.1% needed to recover. It is back at its start. An idealized daily 3× product falls 30%, rises 33.3% and ends 6.7% below its start. In general the shortfall after a fall of *x* and an exact recovery is `L(L−1)x² / (1−x)`, which grows with the **square** of the move. Compounding can also work *for* a leveraged product in a steady trend, so this is a statement about path dependence, not "leveraged ETFs always decay".
+| Part | What it does |
+|---|---|
+| [`notebooks/leveraged-etf-empirical-analysis.ipynb`](notebooks/leveraged-etf-empirical-analysis.ipynb) | **Source of the article's market-facing figures (2 to 5).** Real QQQ, TQQQ and SQQQ daily history: a real fall-and-recovery, three matched 20-day windows, 63-day rolling windows, positive-day analysis. |
+| [`notebooks/leveraged-etf-model-simulations.ipynb`](notebooks/leveraged-etf-model-simulations.ipynb) | Mathematics and **synthetic** simulations only (closed-form two-day example used as article Figure 1, drift-versus-variance experiments, Monte Carlo). Contains no market data and is not used for any market-facing claim. |
+| [`analysis/`](analysis) | `empirical.py` (loading with validation, rolling windows, matched-window search, round-trip search), `figures.py` (Plotly figure builders and exporter), `run.py` (regenerates every table and figure). |
+| [`results/`](results) | Full-precision CSV outputs and the selected windows. |
+| [`figures/`](figures) | Plotly JSON specs (interactive, used by the website) and static PNG fallbacks, plus `figures.json` (alt text, captions, assumptions). `figures/model/` holds the static model figures. |
+| [`data/`](data) | Five-year IBKR daily bars for QQQ, TQQQ and SQQQ, and an older three-date snapshot kept for provenance. |
+| [`tests/`](tests) | Unit tests of the analysis code on hand-made fixtures (not market data). |
 
-## What the notebook does
+## Data
 
-[`notebooks/leveraged-etf-volatility-drag.ipynb`](notebooks/leveraged-etf-volatility-drag.ipynb) runs top to bottom in about a minute with fixed random seeds:
+`data/ibkr-qqq-daily-5y.csv`, `ibkr-tqqq-daily-5y.csv`, `ibkr-sqqq-daily-5y.csv`: 1,253 daily bars each, 2021-10-11 to 2026-10-07, from Interactive Brokers historical price history (daily bars, regular trading hours only, chart source `Last`, retrieved 2026-10-07). They are **observed price bars, not total-return adjusted**. QQQ is a tradable proxy for the Nasdaq-100 that TQQQ and SQQQ target. See [`data/README.md`](data/README.md).
 
-1. a closed-form two-day example;
-2. daily compounding versus "multiply the cumulative return by L", with a check of the second-order approximation;
-3. path dependence: three index paths with the same +10% return and different 3× outcomes;
-4. a **synthetic** volatility experiment (arithmetic drift fixed at 8% a year, volatility 10–60%, five years), separating arithmetic mean returns from compound growth;
-5. how approximate long-run growth depends on the leverage level, `g(L) ≈ Lμ − ½L²σ²`;
-6. a vectorized Monte Carlo of terminal wealth (100,000 paths) with sensitivity to drift and volatility and a fat-tailed (Student-t) check, reporting medians, means and the probability of finishing below the start;
-7. a **historical** illustration: QQQ, TQQQ and SQQQ over 21–25 June 2024.
+## Method in brief
 
-## Synthetic versus historical
-
-Sections 1–6 are mathematics and simulation under stated assumptions (i.i.d. returns, constant drift and volatility, no fees, financing or tracking error). They are **not** forecasts and not calibrated to any market. Section 7 is the only real market data: three closing prices per fund.
-
-## The June 2024 example
-
-| 21 → 25 June 2024 | Cumulative return |
-|---|---:|
-| QQQ (dividend-adjusted) | −0.008% |
-| TQQQ | −0.161% |
-| SQQQ | −0.119% |
-
-QQQ is essentially flat **on a dividend-adjusted basis** (its raw price return was about −0.17% because it went ex-dividend on 24 June), while both the +3× and the −3× product finished slightly below their starting values. Qualifications that matter:
-
-- The three-date snapshot was **recovered from the author's original Colab output**, not freshly downloaded. It uses `yfinance` auto-adjusted `Close`, and the original retrieval date was not preserved. See [`data/README.md`](data/README.md).
-- QQQ is a tradable proxy for the Nasdaq-100; TQQQ and SQQQ target the **index**, not QQQ shares.
-- The example was **selected**: the original notebook searched for a loss-and-rebound sequence. It illustrates a mechanism; it is not evidence about how often this happens or about expected returns.
-- Observed fund returns also include fees, financing, tracking and timing effects, so the deviation from "3× the index" is not attributed entirely to compounding.
+* **Idealized 3× product:** `value_t = value_{t-1} × (1 + 3 r_t)` applied to QQQ's own daily returns; no fees, financing, tracking error or distributions.
+* **Figure 2, round trip:** every two-session window in which QQQ returns to within ±0.10% of its start after a first-day fall; the largest first-day fall is shown (17, 21 and 22 April 2025).
+* **Figure 3, matched windows:** all rolling 20-return windows with QQQ return of at least +5%; sets of three non-overlapping windows with the same number of positive days and QQQ returns within a 0.5 percentage-point band; the set with the largest spread of idealized 3× return is shown (2022-06-17 to 2022-07-19, 2023-05-02 to 2023-05-31, 2025-04-03 to 2025-05-02). The rule is fixed in code before the results are inspected, but it deliberately looks for a visible spread, so the windows illustrate a mechanism and are not a random sample. Alternatives and tolerance sensitivity are in `results/`.
+* **Figures 4 and 5, rolling windows:** all 1,190 overlapping 63-return windows. Overlapping windows are strongly dependent (about 19 non-overlapping quarters), so the scatter describes this one five-year episode, not 1,190 independent experiments. `results/horizon_sensitivity.csv` shows the 20, 63, 126 and 252-day alternatives.
 
 ## Reproduce it
 
@@ -48,24 +36,17 @@ git clone https://github.com/dvirross/leveraged-etf-compounding.git
 cd leveraged-etf-compounding
 python -m venv .venv && source .venv/bin/activate    # optional
 pip install -r requirements.txt
-jupyter nbconvert --to notebook --execute --inplace notebooks/leveraged-etf-volatility-drag.ipynb
+python -m analysis.run                                # tables in results/, figures in figures/
+jupyter nbconvert --to notebook --execute --inplace notebooks/leveraged-etf-empirical-analysis.ipynb
+pytest -q                                             # unit tests
 ```
 
-No internet access is needed; the real-data section reads the committed CSV. Figures are written to `figures/` together with a `figures.json` manifest (captions and assumptions). An optional cell compares the snapshot's returns with a fresh Yahoo Finance download if `yfinance` is installed and reachable; the run never depends on it.
+No internet access is needed. The static PNG fallbacks need `kaleido` and a local Chrome or Chromium (set `BROWSER_PATH` if it is not found); without them the JSON specs are still written and a message is printed.
 
-## Contents
+## Limitations
 
-```
-notebooks/   the executed notebook
-data/        three-date CSV snapshot and its provenance notes
-figures/     publication figures exported by the notebook
-requirements.txt, LICENSE
-```
-
-## Methodological caveats
-
-Idealized daily reset only; i.i.d. normal returns (with one Student-t check); constant drift and volatility; no volatility clustering; second-order growth approximation; one selected historical example. Terminal wealth is highly skewed, so means, medians and downside probabilities tell different stories. This is educational mathematics, not investment advice or a trading recommendation.
+Five years is one episode with overlapping windows, so the results describe that history and are not forecasts. The idealized product ignores fees, financing, tracking error and distributions; actual TQQQ trails it by a median of about 3 percentage points per 63-day window in this sample, and the analysis does not decompose that gap. A longer history (additional years before 2021, especially the 2008 and 2000–2002 periods) would show how stable the relationships are; the loader accepts files with the same columns. This is educational mathematics, not investment advice.
 
 ## Author and license
 
-[Dvir Ross](https://dvirross.com). Code and notebook: MIT license. Third-party market data and the sources cited in the article are not relicensed (see [LICENSE](LICENSE) and [data/README.md](data/README.md)).
+[Dvir Ross](https://dvirross.com). Code and notebooks: MIT license. Third-party market data and the sources cited in the article are not relicensed (see [LICENSE](LICENSE) and [data/README.md](data/README.md)).
