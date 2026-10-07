@@ -9,8 +9,10 @@ Conventions
 * A window of horizon H is H consecutive daily returns. Its *base date* is the close before the first return and its
   *end date* is the close of the last return, so a window covers H+1 closes.
 * Realized volatility is the sample standard deviation (ddof=1) of the H daily returns times sqrt(252).
-* ``drag`` is the idealized leveraged wealth relative to the smooth-path value (1 + R)^L, minus one, where R is the
-  benchmark cumulative return over the window. For small daily moves it is close to exp(-L(L-1)/2 * sum(r^2)) - 1.
+* ``drag`` is ``(1 + L-times return) / (1 + R)^L - 1``, where R is the benchmark cumulative return over the window. ``(1 + R)^L`` is the
+  benchmark's wealth raised to the leverage power, a path-independent reference (the benchmark's cumulative log return multiplied by L and
+  exponentiated). The ratio removes that cumulative log-return term. To second order, log(1 + L-times return) - L log(1 + R) is
+  approximately -L(L-1)/2 * sum(r^2); higher-order terms remain, so the ratio is not exactly a pure volatility measure.
 * ``deviation`` is idealized leveraged return minus L times the benchmark cumulative return (the "naive" multiple).
 """
 from __future__ import annotations
@@ -170,5 +172,5 @@ def bin_by_positive_share(win: pd.DataFrame, edges=(0.0, 0.45, 0.50, 0.55, 0.60,
     """Summary of idealized leveraged return by share of positive-return days."""
     b = pd.cut(win.pos_share, list(edges), include_lowest=True)
     return win.groupby(b, observed=True).agg(
-        n=("lev_return", "size"), bench_median=("bench_return", "median"), lev_median=("lev_return", "median"),
+        n=("lev_return", "size"), share_positive=("lev_return", lambda x: float((x > 0).mean())), bench_median=("bench_return", "median"), lev_median=("lev_return", "median"),
         lev_min=("lev_return", "min"), lev_max=("lev_return", "max")).reset_index().rename(columns={"pos_share": "positive_day_share"})

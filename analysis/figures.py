@@ -49,7 +49,8 @@ def fig_round_trip(close: pd.DataFrame, row: pd.Series) -> go.Figure:
         fig.add_trace(go.Scatter(
             x=labels, y=np.round(y.values, 6), mode="lines+markers", name=name, line=dict(color=col, width=3, dash=dash), marker=dict(size=9),
             customdata=np.column_stack([np.round(raw.values, 2), np.round(ret[key].values, 4)]),
-            hovertemplate="<b>%{fullData.name}</b><br>%{x}<br>Close: %{customdata[0]:.2f}<br>Value: %{y:.2f}<br>Return since " + _d(c.index[0]) + ": %{customdata[1]:+.2f}%<extra></extra>"))
+            # absolute TQQQ/SQQQ levels may reflect retrospective split normalization in the source series, so only QQQ's close is shown
+            hovertemplate="<b>%{fullData.name}</b><br>%{x}<br>" + ("Close: %{customdata[0]:.2f}<br>" if key == "QQQ" else "") + "Value: %{y:.2f}<br>Return since " + _d(c.index[0]) + ": %{customdata[1]:+.2f}%<extra></extra>"))
     fig.add_trace(go.Scatter(
         x=labels, y=np.round(ideal.values, 6), mode="lines+markers", name="Idealized +3× applied to QQQ", line=dict(color=ORANGE, width=2, dash="dot"),
         marker=dict(size=7, symbol="diamond-open"),
@@ -104,7 +105,7 @@ def fig_vol_drag(win: pd.DataFrame, horizon: int) -> go.Figure:
                           _pct(win.naive_return), _pct(win.deviation), _pct(win.pos_share, 1), _pct(win.vol)])
     ht = ("<b>%{customdata[0]} to %{customdata[1]}</b><br>QQQ return: %{customdata[2]:+.2f}%<br>Idealized 3× return: %{customdata[3]:+.2f}%<br>"
           "3 × QQQ return: %{customdata[4]:+.2f}%<br>Realized volatility: %{customdata[7]:.2f}%<br>Positive days: %{customdata[6]:.1f}%<br>"
-          "Shortfall vs smooth-path value: %{y:.2f}%<extra></extra>")
+          "Gap vs (1 + QQQ return)³: %{y:.2f}%<extra></extra>")
     lim = float(np.ceil(100 * win.bench_return.abs().max() / 10) * 10)
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -124,7 +125,7 @@ def fig_vol_drag(win: pd.DataFrame, horizon: int) -> go.Figure:
     fig.update_layout(**BASE, height=520, margin=dict(l=56, r=16, t=16, b=140), hovermode="closest",
                       legend=dict(orientation="v", x=0.99, y=0.99, xanchor="right", yanchor="top", font=dict(size=11), bgcolor="rgba(255,255,255,0.85)"),
                       xaxis=dict(title="Realized volatility (annualized)", ticksuffix="%", gridcolor=GRID, zeroline=False, linecolor=AXIS),
-                      yaxis=dict(title="Shortfall vs smooth-path value", ticksuffix="%", gridcolor=GRID, zeroline=True, zerolinecolor=AXIS))
+                      yaxis=dict(title="Gap vs (1 + QQQ return)³", ticksuffix="%", gridcolor=GRID, zeroline=True, zerolinecolor=AXIS))
     return fig
 
 
@@ -142,7 +143,13 @@ def fig_green_days(win: pd.DataFrame, horizon: int, edges=(0.0, 0.45, 0.50, 0.55
             hovertemplate=("<b>%{customdata[0]} to %{customdata[1]}</b><br>Idealized 3× return: %{y:+.2f}%<br>QQQ return: %{customdata[2]:+.2f}%<br>"
                            "3 × QQQ return: %{customdata[3]:+.2f}%<br>Realized volatility: %{customdata[4]:.2f}%<br>Positive days: %{customdata[5]} of " + str(horizon) + "<extra></extra>")))
     fig.add_hline(y=0, line=dict(color=MUTED, width=1.2, dash="dash"))
-    fig.update_layout(**BASE, height=480, margin=dict(l=64, r=16, t=24, b=88), hovermode="closest",
+    # share of windows in each group whose idealized 3x return is positive (a sample statistic; windows overlap heavily)
+    fig.add_annotation(xref="paper", yref="paper", x=0, y=1.13, xanchor="left", yanchor="bottom", showarrow=False, text="Windows ending above zero:", font=dict(size=12, color=MUTED))
+    for lab in labels:
+        g = win[b == lab]
+        fig.add_annotation(xref="x", yref="paper", x=f"{lab}<br>n={len(g)}", y=1.04, xanchor="center", yanchor="bottom", showarrow=False,
+                           text=f"<b>{100 * (g.lev_return > 0).mean():.1f}%</b>", font=dict(size=10, color=INK))
+    fig.update_layout(**BASE, height=520, margin=dict(l=64, r=16, t=92, b=88), hovermode="closest",
                       xaxis=dict(title="Positive days (% of the window)", linecolor=AXIS, tickangle=0, tickfont=dict(size=11)),
                       yaxis=dict(title="Idealized 3× return", ticksuffix="%", gridcolor=GRID, zeroline=False))
     return fig
