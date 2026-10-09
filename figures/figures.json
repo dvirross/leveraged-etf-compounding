@@ -13,6 +13,13 @@
     "caption": "Three real 20-day QQQ windows with almost the same cumulative return (about +8.5% to +9%) and the same number of positive days (12 of 20). The idealized daily 3× product ends between about +19% and +28%, because the day-to-day path differs.",
     "assumptions": "IBKR historical daily closing prices, not adjusted for distributions. Windows found by the systematic rule in this notebook (largest 3× spread among non-overlapping windows with equal positive-day count and QQQ returns within 0.5 percentage points); selected to illustrate a mechanism, not randomly sampled. The 3× series is an idealized model of QQQ's own daily returns without fees, financing or tracking error."
   },
+  "03b-window-decomposition": {
+    "spec": "figures/03b-window-decomposition.json",
+    "static": "figures/03b-window-decomposition.png",
+    "alt": "Grouped bar chart for the three 20-day QQQ windows. Each group shows a compounding benefit of about +2.2 to +2.5 percentage points, a volatility correction of −2.16 for June to July 2022, −1.00 for May 2023 and −8.24 for April to May 2025, and a net difference from naive 3× of +0.12, +1.47 and −6.03 percentage points.",
+    "caption": "The three 20-day results split into a compounding benefit (solid), a volatility correction (striped) and their net, the compounding deviation from naive 3× (dark), in percentage points of the window's return. Below each window: naive 3× return → idealized 3× return. The compounding benefit is nearly the same in all three windows; the correction is not.",
+    "assumptions": "Full-precision daily QQQ returns from IBKR closing prices (not adjusted for distributions); idealized 3× model without fees, financing or tracking error. Exact identity R3 = 3R + (3R²+R³) + (1+R)³(e^D − 1); the split is explanatory, not the unique decomposition of leveraged-ETF returns. Windows are those selected in section 3."
+  },
   "04-volatility-drag-rolling": {
     "spec": "figures/04-volatility-drag-rolling.json",
     "static": "figures/04-volatility-drag-rolling.png",

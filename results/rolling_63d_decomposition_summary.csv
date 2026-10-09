@@ -1,0 +1,12 @@
+statistic,value
+windows,1190.0
+relative_correction_min_pct,-10.545054287561717
+relative_correction_median_pct,-2.7387734657423337
+relative_correction_max_pct,-0.8534822173736134
+arithmetic_correction_min_pp,-15.026566013267217
+arithmetic_correction_median_pp,-3.298451444151407
+arithmetic_correction_max_pp,-1.1084042086645374
+compounding_benefit_median_pp,1.8701860212812171
+windows_bench_up,796.0
+up_windows_benefit_exceeds_abs_correction,325.0
+up_windows_lev_beats_naive,325.0
