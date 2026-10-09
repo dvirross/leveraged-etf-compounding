@@ -3,6 +3,7 @@
     python -m analysis.run            # from the repository root
 
 Writes full-precision CSVs to results/ and Plotly specs (+ PNG fallbacks when possible) to figures/.
+Article figure numbers: files 02, 03, 03b, 04, 05 are article Figures 2, 3, 4, 5, 6 (03b is the decomposition added after the original series).
 """
 from __future__ import annotations
 
@@ -37,6 +38,19 @@ def horizon_table(close: pd.DataFrame, horizons=(20, 63, 126, 252)) -> pd.DataFr
     return pd.DataFrame(rows)
 
 
+def decomposition_tables(close: pd.DataFrame, windows: pd.DataFrame, rolling: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """Result tables of the exact compounding-versus-volatility-correction decomposition (file name -> DataFrame).
+
+    ``windows`` are the three matched 20-day windows and ``rolling`` the 63-day rolling windows. Used by ``main`` and by the notebook,
+    so there is a single implementation of what is written to ``results/``.
+    """
+    return {
+        "window_decomposition_20d.csv": emp.decompose_windows(close["QQQ"], windows),
+        "window_daily_contributions_20d.csv": emp.daily_contributions(close["QQQ"], windows),
+        f"rolling_{ROLL_HORIZON}d_decomposition_summary.csv": emp.rolling_decomposition_summary(rolling),
+    }
+
+
 def main(png: bool = True) -> None:
     RESULTS.mkdir(exist_ok=True)
     close = emp.load_aligned(DATA)
@@ -55,13 +69,19 @@ def main(png: bool = True) -> None:
     paths.drop(columns="vol_to_date").to_csv(RESULTS / "matched_windows_20d_daily_paths.csv", index=False)
     figs.export(figs.fig_matched_windows(close["QQQ"], m.windows, MATCH_HORIZON), FIGS, "03-matched-windows", (1100, 760), png)
 
-    # Figures 4 and 5: rolling windows
+    # Figures 5 and 6 (files 04 and 05): rolling windows
     w = emp.rolling_windows(close["QQQ"], ROLL_HORIZON, compare=close["TQQQ"])
     w.to_csv(RESULTS / f"rolling_{ROLL_HORIZON}d_windows.csv", index=False)
     emp.bin_by_positive_share(w).to_csv(RESULTS / f"positive_day_bins_{ROLL_HORIZON}d.csv", index=False)
     horizon_table(close).to_csv(RESULTS / "horizon_sensitivity.csv", index=False)
     figs.export(figs.fig_vol_drag(w, ROLL_HORIZON), FIGS, "04-volatility-drag-rolling", (1100, 640), png)
     figs.export(figs.fig_green_days(w, ROLL_HORIZON), FIGS, "05-positive-days-rolling", (1100, 560), png)
+
+    # Article Figure 4 (file 03b): exact decomposition of the three matched windows, and its 63-day link
+    tables = decomposition_tables(close, m.windows, w)
+    for name, df in tables.items():
+        df.to_csv(RESULTS / name, index=False)
+    figs.export(figs.fig_window_decomposition(tables["window_decomposition_20d.csv"]), FIGS, "03b-window-decomposition", (1100, 640), png)
 
     # One manifest entry per figure is written by the notebook; this script writes the machine-readable run summary.
     summary = dict(

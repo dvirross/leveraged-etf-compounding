@@ -1,4 +1,4 @@
-"""Plotly figure builders for the article's real-data figures (article Figures 2 to 5).
+"""Plotly figure builders for the article's real-data figures (article Figures 2 to 6).
 
 Each builder takes the DataFrames produced by ``analysis.empirical`` and returns a ``plotly.graph_objects.Figure``.
 ``export`` writes the JSON spec that the website renders with plotly.js plus a static PNG fallback (PNG needs kaleido
@@ -98,7 +98,46 @@ def fig_matched_windows(close: pd.Series, windows: pd.DataFrame, horizon: int) -
     return fig
 
 
-# --------------------------------------------------------------------------------------- Figure 4
+# --------------------------------------------------------------------------------------- Figure 4 (file 03b)
+def _short_window(base, end) -> str:
+    """'May 2023' when the window starts and ends in the same month, else 'Jun–Jul 2022' (windows here never span a year end)."""
+    b, e = pd.Timestamp(base), pd.Timestamp(end)
+    return f"{b:%b %Y}" if (b.year, b.month) == (e.year, e.month) else f"{b:%b}–{e:%b %Y}"
+
+
+def fig_window_decomposition(dec: pd.DataFrame) -> go.Figure:
+    """Grouped bars per window: compounding benefit (solid), volatility correction (striped) and their net, in percentage points of
+    return. ``dec`` is the table from ``analysis.empirical.decompose_windows``. Window colours follow article Figure 3."""
+    colors = [BLUE, ORANGE, TEAL]
+    pp = lambda v: f"{100 * v:+.2f}".replace("-", "−")
+    rows = [dec.iloc[i] for i in range(len(dec))]
+    xl = [f"{_short_window(r.base_date, r.end_date)}<br>{100 * r.naive_return:.2f}→{100 * r.lev_return:.2f}%" for r in rows]
+    full = [f"{_d(r.base_date).rsplit(',', 1)[0]} – {_d(r.end_date)}" for r in rows]
+    col = colors[:len(rows)]
+    txt = dict(textposition="outside", constraintext="none", textfont=dict(size=11), cliponaxis=False)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=xl, y=[100 * r.compounding_benefit for r in rows], marker=dict(color=col), name="Compounding benefit", text=[pp(r.compounding_benefit) for r in rows],
+                         offsetgroup="a", showlegend=False, customdata=[[n, 100 * r.bench_return] for n, r in zip(full, rows)], **txt,
+                         hovertemplate="%{customdata[0]}<br>Compounding benefit: %{y:+.2f} pp<br>(depends only on QQQ's window return, %{customdata[1]:.2f}%)<extra></extra>"))
+    fig.add_trace(go.Bar(x=xl, y=[100 * r.volatility_correction for r in rows], marker=dict(color=col, pattern=dict(shape="/", fgcolor="white", size=7, solidity=0.45)),
+                         name="Volatility correction", text=[pp(r.volatility_correction) for r in rows], offsetgroup="b", showlegend=False,
+                         customdata=[[n, 100 * r.D_exact] for n, r in zip(full, rows)], **txt,
+                         hovertemplate="%{customdata[0]}<br>Volatility correction: %{y:+.2f} pp<br>(log deviation D = %{customdata[1]:.2f}%)<extra></extra>"))
+    fig.add_trace(go.Bar(x=xl, y=[100 * r.net_vs_naive for r in rows], marker=dict(color=INK), name="Net", text=[pp(r.net_vs_naive) for r in rows], offsetgroup="c", showlegend=False,
+                         customdata=[[n] for n in full], **txt, hovertemplate="%{customdata[0]}<br>Net (idealized 3× minus naive 3×): %{y:+.2f} pp<extra></extra>"))
+    # legend swatches in neutral grey so the legend explains the encoding without implying a window
+    fig.add_trace(go.Bar(x=[None], y=[None], name="Compounding benefit", marker=dict(color="#8a93a6")))
+    fig.add_trace(go.Bar(x=[None], y=[None], name="Volatility correction", marker=dict(color="white", line=dict(color="#8a93a6", width=1),
+                                                                                      pattern=dict(shape="/", fgcolor="#8a93a6", bgcolor="white", size=7, solidity=0.45))))
+    fig.add_trace(go.Bar(x=[None], y=[None], name="Net versus naive 3×", marker=dict(color=INK)))
+    fig.update_layout(**BASE, barmode="group", bargap=0.28, bargroupgap=0.04, height=520, margin=dict(l=62, r=12, t=22, b=120),
+                      legend=dict(orientation="h", x=0, y=-0.27, yanchor="top", xanchor="left", font=dict(size=12)),
+                      xaxis=dict(showgrid=False, linecolor=AXIS, tickfont=dict(size=11), tickangle=0, automargin=True),
+                      yaxis=dict(title=dict(text="Percentage points"), ticksuffix=" pp", gridcolor=GRID, zeroline=True, zerolinecolor=INK, zerolinewidth=1.2, range=[-10.2, 4.4], dtick=2))
+    return fig
+
+
+# --------------------------------------------------------------------------------------- Figure 5
 def fig_vol_drag(win: pd.DataFrame, horizon: int) -> go.Figure:
     T = horizon / emp.TRADING_DAYS
     cd = np.column_stack([[_d(d) for d in win.base_date], [_d(d) for d in win.end_date], _pct(win.bench_return), _pct(win.lev_return),
@@ -129,7 +168,7 @@ def fig_vol_drag(win: pd.DataFrame, horizon: int) -> go.Figure:
     return fig
 
 
-# --------------------------------------------------------------------------------------- Figure 5
+# --------------------------------------------------------------------------------------- Figure 6
 def fig_green_days(win: pd.DataFrame, horizon: int, edges=(0.0, 0.45, 0.50, 0.55, 0.60, 0.65, 1.0)) -> go.Figure:
     labels = ["≤45", "45–50", "50–55", "55–60", "60–65", ">65"]
     b = pd.cut(win.pos_share, list(edges), include_lowest=True, labels=labels)

@@ -174,3 +174,93 @@ def bin_by_positive_share(win: pd.DataFrame, edges=(0.0, 0.45, 0.50, 0.55, 0.60,
     return win.groupby(b, observed=True).agg(
         n=("lev_return", "size"), share_positive=("lev_return", lambda x: float((x > 0).mean())), bench_median=("bench_return", "median"), lev_median=("lev_return", "median"),
         lev_min=("lev_return", "min"), lev_max=("lev_return", "max")).reset_index().rename(columns={"pos_share": "positive_day_share"})
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Exact decomposition of the idealized L-times return (article section "Explaining the three 20-day windows")
+# ----------------------------------------------------------------------------------------------------------------------
+# For daily returns r_t with 1 + r_t > 0 and 1 + L r_t > 0, let R be the benchmark cumulative return, R_L the idealized
+# L-times cumulative return and
+#     D = sum_t [ log(1 + L r_t) - L log(1 + r_t) ]          (exact log deviation; every term is <= 0)
+# Then 1 + R_L = (1 + R)^L exp(D) exactly, and subtracting 1 gives, with (1 + R)^L expanded around 1 + L R,
+#     R_L = L R  +  [ (1 + R)^L - 1 - L R ]  +  (1 + R)^L (exp(D) - 1)
+#           naive      compounding benefit       volatility correction
+# (for L = 3 the benefit is 3 R^2 + R^3). The split is an explanatory accounting identity for the idealized product, not
+# the unique decomposition of leveraged-ETF returns, and real funds add fees, financing and tracking effects.
+# D_2 = -L (L - 1) / 2 * sum_t r_t^2 is only the second-order Taylor approximation of D.
+
+def window_returns(close: pd.Series, base_date, end_date) -> pd.Series:
+    """The daily returns of one window: closes from ``base_date`` to ``end_date`` give ``len(close.loc[base:end]) - 1`` returns."""
+    r = close.loc[base_date:end_date].pct_change().dropna()
+    if r.empty:
+        raise ValueError("window contains no returns")
+    return r
+
+
+def decompose(returns, leverage: int = LEVERAGE) -> dict:
+    """Exact decomposition of one window of daily returns (full precision). See the module section above for the identities."""
+    r = np.asarray(returns, dtype=float)
+    if (1 + r <= 0).any() or (1 + leverage * r <= 0).any():
+        raise ValueError("the decomposition needs 1 + r > 0 and 1 + L r > 0 on every day")
+    R = float(np.prod(1 + r) - 1)
+    R_L = float(np.prod(1 + leverage * r) - 1)
+    contrib = np.log1p(leverage * r) - leverage * np.log1p(r)
+    D = float(contrib.sum())
+    s2 = float(np.sum(r ** 2))
+    benefit = (1 + R) ** leverage - 1 - leverage * R
+    correction = (1 + R) ** leverage * (np.exp(D) - 1)
+    D2 = -leverage * (leverage - 1) / 2 * s2
+    R_L_2 = (1 + R) ** leverage * np.exp(D2) - 1
+    return dict(n_returns=len(r), bench_return=R, naive_return=leverage * R, compounding_benefit=float(benefit), volatility_correction=float(correction),
+                lev_return=R_L, net_vs_naive=R_L - leverage * R, reconstruction_error=float(leverage * R + benefit + correction - R_L),
+                D_exact=D, sum_sq=s2, D_second_order=D2, lev_return_second_order=float(R_L_2), second_order_error=float(R_L_2 - R_L))
+
+
+def decompose_windows(close: pd.Series, windows: pd.DataFrame, leverage: int = LEVERAGE) -> pd.DataFrame:
+    """One row per selected window (columns base_date, end_date as in ``match_windows``), with the exact decomposition."""
+    rows = []
+    for i, (_, w) in enumerate(windows.iterrows(), start=1):
+        rows.append(dict(window=i, base_date=w.base_date, end_date=w.end_date, **decompose(window_returns(close, w.base_date, w.end_date), leverage)))
+    return pd.DataFrame(rows)
+
+
+def daily_contributions(close: pd.Series, windows: pd.DataFrame, leverage: int = LEVERAGE) -> pd.DataFrame:
+    """Each day's exact contribution to D, its share of D, and the second-order contribution -L(L-1)/2 r^2 and its share of sum r^2."""
+    rows = []
+    for i, (_, w) in enumerate(windows.iterrows(), start=1):
+        r = window_returns(close, w.base_date, w.end_date)
+        c = np.log1p(leverage * r) - leverage * np.log1p(r)
+        s2 = float((r ** 2).sum())
+        for d, ri, ci in zip(r.index, r.values, c.values):
+            rows.append(dict(window=i, date=d, r=ri, growth_factor_levered=1 + leverage * ri, growth_factor_cubed=(1 + ri) ** leverage, contribution_D=ci,
+                             share_of_D=ci / c.sum(), second_order_contribution=-leverage * (leverage - 1) / 2 * ri ** 2, share_of_sum_sq=ri ** 2 / s2))
+    return pd.DataFrame(rows)
+
+
+def add_decomposition(win: pd.DataFrame, leverage: int = LEVERAGE) -> pd.DataFrame:
+    """Rolling-window table plus the arithmetic decomposition of each window.
+
+    ``drag`` (already in the table) is the *relative* correction exp(D) - 1 = (1 + R_L) / (1 + R)^L - 1;
+    ``volatility_correction`` is the *arithmetic* correction (1 + R)^L (exp(D) - 1) in return units, which equals ``deviation - compounding_benefit``.
+    """
+    out = win.copy()
+    out["compounding_benefit"] = (1 + out.bench_return) ** leverage - 1 - leverage * out.bench_return
+    out["volatility_correction"] = out.deviation - out.compounding_benefit
+    return out
+
+
+def rolling_decomposition_summary(win: pd.DataFrame, leverage: int = LEVERAGE) -> pd.DataFrame:
+    """Summary (one row per statistic) of the decomposition over all rolling windows; ``pp`` means percentage points of return."""
+    d = add_decomposition(win, leverage)
+    up = d[d.bench_return > 0]
+    stats = {
+        "windows": len(d),
+        "relative_correction_min_pct": 100 * d.drag.min(), "relative_correction_median_pct": 100 * d.drag.median(), "relative_correction_max_pct": 100 * d.drag.max(),
+        "arithmetic_correction_min_pp": 100 * d.volatility_correction.min(), "arithmetic_correction_median_pp": 100 * d.volatility_correction.median(),
+        "arithmetic_correction_max_pp": 100 * d.volatility_correction.max(),
+        "compounding_benefit_median_pp": 100 * d.compounding_benefit.median(),
+        "windows_bench_up": len(up),
+        "up_windows_benefit_exceeds_abs_correction": int((up.compounding_benefit > -up.volatility_correction).sum()),
+        "up_windows_lev_beats_naive": int((up.deviation > 0).sum()),
+    }
+    return pd.DataFrame({"statistic": list(stats), "value": list(stats.values())})
