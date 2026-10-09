@@ -16,7 +16,7 @@ A daily 3× leveraged ETF targets three times the index's return **each day**. C
 | [`results/`](results) | Full-precision CSV outputs and the selected windows. |
 | [`figures/`](figures) | Plotly JSON specs (interactive, used by the website) and static PNG fallbacks, plus `figures.json` (alt text, captions, assumptions). `figures/model/` holds the static model figures. |
 | [`data/`](data) | Five-year IBKR daily bars for QQQ, TQQQ and SQQQ, and an older three-date snapshot kept for provenance. |
-| [`tests/`](tests) | Unit tests of the analysis code on hand-made fixtures (not market data). |
+| [`tests/`](tests) | Unit tests on synthetic fixtures and regression tests that verify published results against the committed IBKR market data. |
 
 ## Article figures and files
 
